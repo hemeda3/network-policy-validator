@@ -54,7 +54,7 @@ func NewTGIKController(client *kubernetes.Clientset,
 		namespaceGetter:       client.CoreV1(),
 		namespaceLister:       namespaceInformer.Lister(),
 		namespaceListerSynced: namespaceInformer.Informer().HasSynced,
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "secretsync"),
+		queue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "secretsync"),
 	}
 
 	// TODO: only schedule sync if it is a secret that has or had our
