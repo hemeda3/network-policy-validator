@@ -1,28 +1,13 @@
-# tgik-controller
+# Learning GO & K8, by developing  Kubernates Network Policy Validator
 
-Example controller for TGIK talk.
-
-Covers:
-- Controllers
-- Getters
-- Informers
-- Listers
-- Cache Synchronisation
-- Rate Limiting Queues & Workers
-
-## Videos
-This sample repository was developed and explained across three episodes of the [TGI Kubernetes](https://www.youtube.com/watch?v=9YYeE-bMWv8&list=PLvmPtYZtoXOENHJiAQc6HmV2jmuexKfrJ) YouTube Series.
-- [TGI Kubernetes 007: Building a Controller](https://www.youtube.com/watch?v=8Xo_ghCIOSY)
-- [TGI Kubernetes 008: Continuing the Controller](https://www.youtube.com/watch?v=fWkK-zsFtlU)
-- [TGI Kubernetes 009: Finishing the Controller](https://www.youtube.com/watch?v=wqhKCiGsf1Y)
+1- extract network policy
+2- for each network policy  do :
+  inside for each ingress/egress do  :
+    get allowed pod , ports, protocols 
+4- generate tests cases based on the information 
+5- use port scanner tool to execute test case
+6- gnerate reports
+7- support Calico ( including Calico custom policy), Weave net, etc ...    
 
 
-## Ideas/code stolen from...
-This repo vendors in client-go along with all of the appropriate dependencies.  The procedure followed is described by @ncdc in this [blog post](https://blog.heptio.com/straighten-out-your-kubernetes-client-go-dependencies-heptioprotip-8baeed46fe7d).
-
-The docker build makefile and such was taken from https://github.com/thockin/go-build-template.
-
-+++++++++++++
-panic: No Auth Provider found for name "gcp"
-https://github.com/kubernetes/client-go/blob/master/examples/out-of-cluster-client-configuration/main.go
-// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+* skeleton code copied from tgik-controller/Vmware 
