@@ -3,6 +3,7 @@ module github.com/jbeda/tgik-controller
 go 1.12
 
 require (
+	github.com/go-openapi/spec v0.0.0-20160808142527-6aced65f8501
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0

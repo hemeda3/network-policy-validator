@@ -84,43 +84,6 @@ func NewTGIKController(client *kubernetes.Clientset,
 
 	return c
 
-	// TODO: only schedule sync if it is a secret that has or had our
-	// annotation.
-	// secretInformer.Informer().AddEventHandler(
-	// 	cache.ResourceEventHandlerFuncs{
-	// 		AddFunc: func(obj interface{}) {
-	// 			log.Print("secret added")
-	// 			c.ScheduleSecretSync()
-	// 		},
-	// 		UpdateFunc: func(oldObj, newObj interface{}) {
-	// 			log.Print("secret updated")
-	// 			c.ScheduleSecretSync()
-	// 		},
-	// 		DeleteFunc: func(obj interface{}) {
-	// 			log.Print("secret deleted")
-	// 			c.ScheduleSecretSync()
-	// 		},
-	// 	},
-	// )
-
-	// TODO: only schedule sync if it is a namespace that has or had our
-	// annotation or the secretsync source namespace.
-	// namespaceInformer.Informer().AddEventHandler(
-	// 	cache.ResourceEventHandlerFuncs{
-	// 		AddFunc: func(obj interface{}) {
-	// 			log.Print("namespace added")
-	// 			c.ScheduleSecretSync()
-	// 		},
-	// 		UpdateFunc: func(oldObj, newObj interface{}) {
-	// 			log.Print("namespace updated")
-	// 			c.ScheduleSecretSync()
-	// 		},
-	// 		DeleteFunc: func(obj interface{}) {
-	// 			log.Print("namespace deleted")
-	// 			c.ScheduleSecretSync()
-	// 		},
-	// 	},
-	// )
 }
 
 func (c *TGIKController) Run(stop <-chan struct{}) {
@@ -216,21 +179,6 @@ func (c *TGIKController) ScheduleNetworkPolicySync() {
 	c.queue.Add(networkPolicySyncKey)
 }
 
-// func (c *TGIKController) getSecretsInNS(ns string) ([]*apicorev1.Secret, error) {
-// 	rawSecrets, err := c.secretLister.Secrets(ns).List(labels.Everything())
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	var secrets []*apicorev1.Secret
-// 	for _, secret := range rawSecrets {
-// 		if _, ok := secret.Annotations[secretSyncAnnotation]; ok {
-// 			secrets = append(secrets, secret)
-// 		}
-// 	}
-// 	return secrets, nil
-// }
-
 func (c *TGIKController) getNetworkPolicyInNS(ns string) ([]*v1.NetworkPolicy, error) {
 	log.Print("getNetworkPolicyInNS: start grapping network policies inside the name space ")
 	rawNCPs, err := c.networkPoliciesLister.NetworkPolicies(ns).List(labels.Everything())
@@ -246,6 +194,62 @@ func (c *TGIKController) getNetworkPolicyInNS(ns string) ([]*v1.NetworkPolicy, e
 		if _, ok := oneNetworkPolicy.Annotations[netowrkPoliySyncAnnotation]; ok {
 			//networkPolicies = append(networkPolicies, oneNetworkPolicy)
 			log.Print("getNetworkPolicyInNS: done ", oneNetworkPolicy.GetName())
+			ingressRules := oneNetworkPolicy.Spec.Ingress
+			policyType := oneNetworkPolicy.Spec.PolicyTypes
+			applyToPods := oneNetworkPolicy.Spec.PodSelector
+			log.Print("applyToPods.MatchLabels :", applyToPods.MatchLabels)
+
+			for _, policy := range policyType {
+				log.Print("***Policy Type is :", policy)
+			}
+			for _, rule := range ingressRules {
+				listOfSrcs := rule.From
+				for _, fromOneSrc := range listOfSrcs {
+					//					log.Printf("ingress rules -> PodSelector: %v", fromOneSrc.PodSelector.MatchLabels)
+					if fromOneSrc.NamespaceSelector != nil {
+						log.Printf("ingress rules -> NamespaceSelector: %v", fromOneSrc.NamespaceSelector.MatchLabels)
+					}
+					if fromOneSrc.IPBlock != nil {
+						log.Printf("ingress rules -> CIDR: %v", fromOneSrc.IPBlock.CIDR)
+					}
+					if fromOneSrc.IPBlock != nil {
+						log.Printf("ingress rules -> except: %v", fromOneSrc.IPBlock.Except)
+					}
+				}
+
+				allowedPorts := rule.Ports
+				for _, allowedPortsValues := range allowedPorts {
+					if allowedPortsValues.Protocol != nil {
+
+						protoc := allowedPortsValues.Protocol
+						log.Print("ingress rules -> port protocol: ", protoc)
+					}
+					if allowedPortsValues.Port != nil {
+						log.Printf("ingress rules -> Port number: %v", allowedPortsValues.Port.String())
+					}
+				}
+			}
+
+			//egressRules := oneNetworkPolicy.Spec.Egress
+
+			// for _, egressRule := range egressRules {
+			// 	toDests := egressRule.To
+			// 	for _, toOneDist := range toDests {
+
+			// 		log.Print("egress rules -> PodSelector: ", toOneDist.PodSelector.MatchLabels)
+			// 		log.Print("egress rules -> NamespaceSelector: ", toOneDist.NamespaceSelector.MatchLabels)
+			// 		log.Print("egress rules -> CIDR: ", toOneDist.IPBlock.CIDR)
+			// 		log.Print("egress rules -> except: ", toOneDist.IPBlock.Except)
+			// 	}
+
+			// 	allowedIcomingPorts := egressRule.Ports
+			// 	for _, allowedIcomingPortsValues := range allowedIcomingPorts {
+			// 		log.Print("egress rules -> port protocol: ", allowedIcomingPortsValues.Protocol)
+			// 		log.Print("egress rules -> Port number: ", allowedIcomingPortsValues.Port.String())
+			// 	}
+			// }
+			log.Print("getNetworkPolicyInNS: done ", oneNetworkPolicy.Spec.Ingress)
+
 		}
 	}
 
@@ -259,67 +263,6 @@ func (c *TGIKController) doSync() error {
 		return err
 	}
 
-	// rawNamespaces, err := c.namespaceLister.List(labels.Everything())
-	// if err != nil {
-	// 	return err
-	// }
-	// var targetNamespaces []*apicorev1.Namespace
-	// for _, ns := range rawNamespaces {
-	// 	if _, ok := ns.Annotations[secretSyncAnnotation]; ok {
-	// 		targetNamespaces = append(targetNamespaces, ns)
-	// 	}
-	// }
-
-	// for _, ns := range targetNamespaces {
-	// 	c.SyncNamespace(srcSecrets, ns.Name)
-	// }
-
 	log.Print("Finishing doSync")
 	return err
 }
-
-// func (c *TGIKController) SyncNamespace(secrets []*apicorev1.Secret, ns string) {
-// 	// 1. Create/Update all of the secrets in this namespace
-// 	for _, secret := range secrets {
-// 		newSecretInf, _ := scheme.Scheme.DeepCopy(secret)
-// 		newSecret := newSecretInf.(*apicorev1.Secret)
-// 		newSecret.Namespace = ns
-// 		newSecret.ResourceVersion = ""
-// 		newSecret.UID = ""
-
-// 		log.Printf("Creating %v/%v", ns, secret.Name)
-// 		_, err := c.secretGetter.Secrets(ns).Create(newSecret)
-// 		if apierrors.IsAlreadyExists(err) {
-// 			log.Printf("Scratch that, updating %v/%v", ns, secret.Name)
-// 			_, err = c.secretGetter.Secrets(ns).Update(newSecret)
-// 		}
-// 		if err != nil {
-// 			log.Printf("Error adding secret %v/%v: %v", ns, secret.Name, err)
-// 		}
-// 	}
-
-// 	// 2. Delete secrets that have annotation but are not in our src list
-// 	srcSecrets := sets.String{}
-// 	targetSecrets := sets.String{}
-
-// 	for _, secret := range secrets {
-// 		srcSecrets.Insert(secret.Name)
-// 	}
-
-// 	targetSecretList, err := c.getSecretsInNS(ns)
-// 	if err != nil {
-// 		log.Printf("Error listing secrets in %v: %v", ns, err)
-// 	}
-// 	for _, secret := range targetSecretList {
-// 		targetSecrets.Insert(secret.Name)
-// 	}
-
-// 	deleteSet := targetSecrets.Difference(srcSecrets)
-// 	for secretName, _ := range deleteSet {
-// 		log.Printf("Delete %v/%v", ns, secretName)
-// 		err = c.secretGetter.Secrets(ns).Delete(secretName, nil)
-// 		if err != nil {
-// 			log.Printf("Error deleting %v/%v: %v", ns, secretName, err)
-// 		}
-// 	}
-// }
