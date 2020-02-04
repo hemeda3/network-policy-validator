@@ -6,19 +6,19 @@ import (
 	"sync"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	//apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
+	//"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeinformers "k8s.io/client-go/informers"
 	informercorev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
+	//"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	listercorev1 "k8s.io/client-go/listers/core/v1"
 	networklisters "k8s.io/client-go/listers/networking/v1"
-	apicorev1 "k8s.io/client-go/pkg/api/v1"
+	apicorev1 "k8s.io/api/core/v1"
 	//v1 "k8s.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -216,20 +216,20 @@ func (c *TGIKController) ScheduleNetworkPolicySync() {
 	c.queue.Add(networkPolicySyncKey)
 }
 
-func (c *TGIKController) getSecretsInNS(ns string) ([]*apicorev1.Secret, error) {
-	rawSecrets, err := c.secretLister.Secrets(ns).List(labels.Everything())
-	if err != nil {
-		return nil, err
-	}
+// func (c *TGIKController) getSecretsInNS(ns string) ([]*apicorev1.Secret, error) {
+// 	rawSecrets, err := c.secretLister.Secrets(ns).List(labels.Everything())
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var secrets []*apicorev1.Secret
-	for _, secret := range rawSecrets {
-		if _, ok := secret.Annotations[secretSyncAnnotation]; ok {
-			secrets = append(secrets, secret)
-		}
-	}
-	return secrets, nil
-}
+// 	var secrets []*apicorev1.Secret
+// 	for _, secret := range rawSecrets {
+// 		if _, ok := secret.Annotations[secretSyncAnnotation]; ok {
+// 			secrets = append(secrets, secret)
+// 		}
+// 	}
+// 	return secrets, nil
+// }
 
 func (c *TGIKController) getNetworkPolicyInNS(ns string) ([]*v1.NetworkPolicy, error) {
 	log.Print("getNetworkPolicyInNS: start grapping network policies inside the name space ")
@@ -243,7 +243,7 @@ func (c *TGIKController) getNetworkPolicyInNS(ns string) ([]*v1.NetworkPolicy, e
 	for _, oneNetworkPolicy := range rawNCPs {
 		//	log.Print("getNetworkPolicyInNS2:", oneNetworkPolicy)
 		if _, ok := oneNetworkPolicy.Annotations[netowrkPoliySyncAnnotation]; ok {
-			networkPolicies = append(networkPolicies, oneNetworkPolicy)
+			//networkPolicies = append(networkPolicies, oneNetworkPolicy)
 			log.Print("getNetworkPolicyInNS: done ", oneNetworkPolicy.GetName())
 		}
 	}
@@ -277,48 +277,48 @@ func (c *TGIKController) doSync() error {
 	return err
 }
 
-func (c *TGIKController) SyncNamespace(secrets []*apicorev1.Secret, ns string) {
-	// 1. Create/Update all of the secrets in this namespace
-	for _, secret := range secrets {
-		newSecretInf, _ := scheme.Scheme.DeepCopy(secret)
-		newSecret := newSecretInf.(*apicorev1.Secret)
-		newSecret.Namespace = ns
-		newSecret.ResourceVersion = ""
-		newSecret.UID = ""
+// func (c *TGIKController) SyncNamespace(secrets []*apicorev1.Secret, ns string) {
+// 	// 1. Create/Update all of the secrets in this namespace
+// 	for _, secret := range secrets {
+// 		newSecretInf, _ := scheme.Scheme.DeepCopy(secret)
+// 		newSecret := newSecretInf.(*apicorev1.Secret)
+// 		newSecret.Namespace = ns
+// 		newSecret.ResourceVersion = ""
+// 		newSecret.UID = ""
 
-		log.Printf("Creating %v/%v", ns, secret.Name)
-		_, err := c.secretGetter.Secrets(ns).Create(newSecret)
-		if apierrors.IsAlreadyExists(err) {
-			log.Printf("Scratch that, updating %v/%v", ns, secret.Name)
-			_, err = c.secretGetter.Secrets(ns).Update(newSecret)
-		}
-		if err != nil {
-			log.Printf("Error adding secret %v/%v: %v", ns, secret.Name, err)
-		}
-	}
+// 		log.Printf("Creating %v/%v", ns, secret.Name)
+// 		_, err := c.secretGetter.Secrets(ns).Create(newSecret)
+// 		if apierrors.IsAlreadyExists(err) {
+// 			log.Printf("Scratch that, updating %v/%v", ns, secret.Name)
+// 			_, err = c.secretGetter.Secrets(ns).Update(newSecret)
+// 		}
+// 		if err != nil {
+// 			log.Printf("Error adding secret %v/%v: %v", ns, secret.Name, err)
+// 		}
+// 	}
 
-	// 2. Delete secrets that have annotation but are not in our src list
-	srcSecrets := sets.String{}
-	targetSecrets := sets.String{}
+// 	// 2. Delete secrets that have annotation but are not in our src list
+// 	srcSecrets := sets.String{}
+// 	targetSecrets := sets.String{}
 
-	for _, secret := range secrets {
-		srcSecrets.Insert(secret.Name)
-	}
+// 	for _, secret := range secrets {
+// 		srcSecrets.Insert(secret.Name)
+// 	}
 
-	targetSecretList, err := c.getSecretsInNS(ns)
-	if err != nil {
-		log.Printf("Error listing secrets in %v: %v", ns, err)
-	}
-	for _, secret := range targetSecretList {
-		targetSecrets.Insert(secret.Name)
-	}
+// 	targetSecretList, err := c.getSecretsInNS(ns)
+// 	if err != nil {
+// 		log.Printf("Error listing secrets in %v: %v", ns, err)
+// 	}
+// 	for _, secret := range targetSecretList {
+// 		targetSecrets.Insert(secret.Name)
+// 	}
 
-	deleteSet := targetSecrets.Difference(srcSecrets)
-	for secretName, _ := range deleteSet {
-		log.Printf("Delete %v/%v", ns, secretName)
-		err = c.secretGetter.Secrets(ns).Delete(secretName, nil)
-		if err != nil {
-			log.Printf("Error deleting %v/%v: %v", ns, secretName, err)
-		}
-	}
-}
+// 	deleteSet := targetSecrets.Difference(srcSecrets)
+// 	for secretName, _ := range deleteSet {
+// 		log.Printf("Delete %v/%v", ns, secretName)
+// 		err = c.secretGetter.Secrets(ns).Delete(secretName, nil)
+// 		if err != nil {
+// 			log.Printf("Error deleting %v/%v: %v", ns, secretName, err)
+// 		}
+// 	}
+// }
