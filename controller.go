@@ -19,9 +19,10 @@ import (
 	listercorev1 "k8s.io/client-go/listers/core/v1"
 	networklisters "k8s.io/client-go/listers/networking/v1"
 	apicorev1 "k8s.io/client-go/pkg/api/v1"
-	v1 "k8s.io/client-go/pkg/apis/networking/v1"
+	//v1 "k8s.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	v1 "k8s.io/kubernetes/pkg/apis/networking"
 )
 
 const (
