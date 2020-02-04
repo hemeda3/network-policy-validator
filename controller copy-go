@@ -19,18 +19,14 @@ import (
 	listercorev1 "k8s.io/client-go/listers/core/v1"
 	networklisters "k8s.io/client-go/listers/networking/v1"
 	apicorev1 "k8s.io/client-go/pkg/api/v1"
-	v1 "k8s.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
 const (
-	secretSyncAnnotation       = "eightypercent.net/secretsync"
-	netowrkPoliySyncAnnotation = "eightypercent.net/networkPolicysync"
-
+	secretSyncAnnotation      = "eightypercent.net/secretsync"
 	secretSyncSourceNamespace = "secretsync"
 	secretSyncKey             = "do it"
-	networkPolicySyncKey      = "do it"
 )
 
 var namespaceBlacklist = map[string]bool{
@@ -74,15 +70,6 @@ func NewTGIKController(client *kubernetes.Clientset,
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "secretsync"),
 	}
 
-	networkPolicyInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			log.Print("Net Work Policy Added added")
-			c.ScheduleNetworkPolicySync()
-		},
-	})
-
-	return c
-
 	// TODO: only schedule sync if it is a secret that has or had our
 	// annotation.
 	// secretInformer.Informer().AddEventHandler(
@@ -120,6 +107,15 @@ func NewTGIKController(client *kubernetes.Clientset,
 	// 		},
 	// 	},
 	// )
+
+	networkPolicyInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			log.Print("Net Work Policy Added added")
+			//c.ScheduleSecretSync()
+		},
+	})
+
+	return c
 }
 
 func (c *TGIKController) Run(stop <-chan struct{}) {
@@ -211,10 +207,6 @@ func (c *TGIKController) ScheduleSecretSync() {
 	c.queue.Add(secretSyncKey)
 }
 
-func (c *TGIKController) ScheduleNetworkPolicySync() {
-	c.queue.Add(networkPolicySyncKey)
-}
-
 func (c *TGIKController) getSecretsInNS(ns string) ([]*apicorev1.Secret, error) {
 	rawSecrets, err := c.secretLister.Secrets(ns).List(labels.Everything())
 	if err != nil {
@@ -230,47 +222,27 @@ func (c *TGIKController) getSecretsInNS(ns string) ([]*apicorev1.Secret, error) 
 	return secrets, nil
 }
 
-func (c *TGIKController) getNetworkPolicyInNS(ns string) ([]*v1.NetworkPolicy, error) {
-	log.Print("getNetworkPolicyInNS: start grapping network policies inside the name space ")
-	rawNCPs, err := c.networkPoliciesLister.NetworkPolicies(ns).List(labels.Everything())
-	//log.Print("getNetworkPolicyInNS1:", rawNCPs)
-	if err != nil {
-		return nil, err
-	}
-
-	var networkPolicies []*v1.NetworkPolicy
-	for _, oneNetworkPolicy := range rawNCPs {
-		//	log.Print("getNetworkPolicyInNS2:", oneNetworkPolicy)
-		if _, ok := oneNetworkPolicy.Annotations[netowrkPoliySyncAnnotation]; ok {
-			networkPolicies = append(networkPolicies, oneNetworkPolicy)
-			log.Print("getNetworkPolicyInNS: done ", oneNetworkPolicy.GetName())
-		}
-	}
-
-	return networkPolicies, nil
-}
-
 func (c *TGIKController) doSync() error {
-	log.Printf("Starting doSync for Network Policy ")
-	_, err := c.getNetworkPolicyInNS(apicorev1.NamespaceDefault)
+	log.Printf("Starting doSync")
+	srcSecrets, err := c.getSecretsInNS(secretSyncSourceNamespace)
 	if err != nil {
 		return err
 	}
 
-	// rawNamespaces, err := c.namespaceLister.List(labels.Everything())
-	// if err != nil {
-	// 	return err
-	// }
-	// var targetNamespaces []*apicorev1.Namespace
-	// for _, ns := range rawNamespaces {
-	// 	if _, ok := ns.Annotations[secretSyncAnnotation]; ok {
-	// 		targetNamespaces = append(targetNamespaces, ns)
-	// 	}
-	// }
+	rawNamespaces, err := c.namespaceLister.List(labels.Everything())
+	if err != nil {
+		return err
+	}
+	var targetNamespaces []*apicorev1.Namespace
+	for _, ns := range rawNamespaces {
+		if _, ok := ns.Annotations[secretSyncAnnotation]; ok {
+			targetNamespaces = append(targetNamespaces, ns)
+		}
+	}
 
-	// for _, ns := range targetNamespaces {
-	// 	c.SyncNamespace(srcSecrets, ns.Name)
-	// }
+	for _, ns := range targetNamespaces {
+		c.SyncNamespace(srcSecrets, ns.Name)
+	}
 
 	log.Print("Finishing doSync")
 	return err
