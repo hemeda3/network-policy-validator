@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kubeinformers "k8s.io/client-go/informers"
 	informercorev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -19,6 +20,9 @@ import (
 	apicorev1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+
+	networklisters "k8s.io/client-go/listers/networking/v1"
+
 )
 
 const (
@@ -41,12 +45,19 @@ type TGIKController struct {
 	namespaceLister       listercorev1.NamespaceLister
 	namespaceListerSynced cache.InformerSynced
 
+	networkPoliciesLister networklisters.NetworkPolicyLister
+	networkPoliciesSynced cache.InformerSynced
+
 	queue workqueue.RateLimitingInterface
 }
 
 func NewTGIKController(client *kubernetes.Clientset,
 	secretInformer informercorev1.SecretInformer,
-	namespaceInformer informercorev1.NamespaceInformer) *TGIKController {
+	namespaceInformer informercorev1.NamespaceInformer,
+	kubeInformerFactory kubeinformers.SharedInformerFactory) *TGIKController {
+
+	networkPolicyInformer := kubeInformerFactory.Networking().V1().NetworkPolicies()
+
 	c := &TGIKController{
 		secretGetter:          client.CoreV1(),
 		secretLister:          secretInformer.Lister(),
@@ -54,7 +65,11 @@ func NewTGIKController(client *kubernetes.Clientset,
 		namespaceGetter:       client.CoreV1(),
 		namespaceLister:       namespaceInformer.Lister(),
 		namespaceListerSynced: namespaceInformer.Informer().HasSynced,
-		queue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "secretsync"),
+
+		networkPoliciesLister: networkPolicyInformer.Lister(),
+		networkPoliciesSynced: networkPolicyInformer.Informer().HasSynced,
+
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "secretsync"),
 	}
 
 	// TODO: only schedule sync if it is a secret that has or had our

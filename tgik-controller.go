@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/jbeda/tgik-controller/version"
-
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 func main() {
@@ -41,7 +40,7 @@ func main() {
 	client := kubernetes.NewForConfigOrDie(config)
 
 	sharedInformers := informers.NewSharedInformerFactory(client, 10*time.Minute)
-	tgikController := NewTGIKController(client, sharedInformers.Core().V1().Secrets(), sharedInformers.Core().V1().Namespaces())
+	tgikController := NewTGIKController(client, sharedInformers.Core().V1().Secrets(), sharedInformers.Core().V1().Namespaces(), sharedInformers)
 
 	sharedInformers.Start(nil)
 	tgikController.Run(nil)
