@@ -15,14 +15,14 @@ import (
 	informercorev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	//"k8s.io/client-go/kubernetes/scheme"
+	apicorev1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	listercorev1 "k8s.io/client-go/listers/core/v1"
 	networklisters "k8s.io/client-go/listers/networking/v1"
-	apicorev1 "k8s.io/api/core/v1"
 	//v1 "k8s.io/client-go/pkg/apis/networking/v1"
+	v1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	v1 "k8s.io/kubernetes/pkg/apis/networking"
 )
 
 const (
@@ -242,6 +242,7 @@ func (c *TGIKController) getNetworkPolicyInNS(ns string) ([]*v1.NetworkPolicy, e
 	var networkPolicies []*v1.NetworkPolicy
 	for _, oneNetworkPolicy := range rawNCPs {
 		//	log.Print("getNetworkPolicyInNS2:", oneNetworkPolicy)
+		//	oneNetworkPolicy.
 		if _, ok := oneNetworkPolicy.Annotations[netowrkPoliySyncAnnotation]; ok {
 			//networkPolicies = append(networkPolicies, oneNetworkPolicy)
 			log.Print("getNetworkPolicyInNS: done ", oneNetworkPolicy.GetName())
