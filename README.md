@@ -1,7 +1,7 @@
 # Learning GO & K8, by developing  Kubernates Network Policy Validator
 
-1- extract network policy
-2- for each network policy  do :
+*1*- extract network policy
+*2*- for each network policy  do :
   inside for each ingress/egress do  :
     get allowed pod , ports, protocols 
 4- generate tests cases based on the information 
