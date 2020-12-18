@@ -1,13 +1,13 @@
 # Learning GO & K8, by developing  Kubernates Network Policy Validator
 
-*1*- extract network policy
-*2*- for each network policy  do :
+- [x] extract network policy
+- [x] for each network policy  do :
   inside for each ingress/egress do  :
     get allowed pod , ports, protocols 
-4- generate tests cases based on the information 
-5- use port scanner tool to execute test case
-6- gnerate reports
-7- support Calico ( including Calico custom policy), Weave net, etc ...    
+- [x] generate tests cases based on the information 
+- [x] use port scanner tool to execute test case
+- [x]gnerate reports
+- [x] support Calico ( including Calico custom policy), Weave net, etc ...    
 
 
-* skeleton code copied from tgik-controller/Vmware 
+* skeleton code modified updated based on tgik-controller/Vmware base repo
